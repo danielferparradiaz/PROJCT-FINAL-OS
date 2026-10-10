@@ -1,0 +1,33 @@
+# Secretos y credenciales (nunca versionar)
+.env
+.env.*
+!.env.example
+*.pfx
+*.pem
+*.key
+secrets/
+config/secrets.yml
+
+# Vagrant / VirtualBox
+.vagrant/
+*.box
+*.vmdk
+*.vdi
+*.ova
+*.log
+vagrant.d/
+
+# Snapshots locales y evidencias pesadas (mantener solo .gitkeep + muestras anonimizadas)
+evidence/*.png
+evidence/*.mp4
+evidence/*.pcap
+!evidence/.gitkeep
+!evidence/README.md
+
+# OS / editores
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/

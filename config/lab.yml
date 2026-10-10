@@ -1,0 +1,90 @@
+# Configuración central del laboratorio
+# NO almacenar contraseñas aquí. Usar variables de entorno o archivos .env (no versionados).
+# Ver README.md sección "Secretos".
+
+lab:
+  domain: "lab.local"
+  netbios: "LAB"
+  # Red académica aislada (host-only). NO debe solaparse con red física de presentación.
+  network: "192.168.56.0/24"
+  # Desactivar DHCP de VirtualBox en esta red. El único DHCP autorizado es windows-dc.
+  provider_net_name: "vboxnet-lab"
+
+machines:
+  oracle-web:
+    hostname: "oracle-web.lab.local"
+    box: "generic/oracle9"
+    box_version: ">= 4.3.0"
+    ip_lab: "192.168.56.10"
+    cpus: 2
+    memory: 2048
+    disk_extra_gb: 0  # ampliar con plugin vagrant-disksize si se requiere
+    services: ["hardening", "httpd+ssl", "dokuwiki", "samba"]
+    # Puertos reenviados al host SOLO para demo/admin (no sustituyen red lab)
+    forwarded_ports:
+      - { guest: 80, host: 8080 }
+      - { guest: 443, host: 8443 }
+
+  freebsd-ftp:
+    hostname: "freebsd-ftp.lab.local"
+    box: "generic/freebsd14"
+    box_version: ">= 4.3.0"
+    ip_lab: "192.168.56.11"
+    cpus: 1
+    memory: 1024
+    services: ["hardening", "vsftpd-auth", "vsftpd-anon"]
+    forwarded_ports:
+      - { guest: 21, host: 2121 }
+
+  windows-dc:
+    hostname: "windows-dc"
+    # Box con Desktop Experience (no Core) para AD DS + DNS + DHCP con GUI/RSAT.
+    # Opción primaria: 2022. Alternativa válida académicamente: 2019.
+    box: "gusztavvargadr/windows-server-2022-standard"
+    box_version: ">= 2601.0.0"
+    ip_lab: "192.168.56.12"
+    cpus: 2
+    memory: 4096
+    services: ["ad-ds", "dns", "dhcp"]
+    # WinRM (5985/5986) solo para aprovisionamiento. Endurecer post-provisión.
+    winrm_timeout: 600
+
+  windows-client:
+    hostname: "windows-client"
+    box: "gusztavvargadr/windows-10"
+    box_version: ">= 21H2"
+    # DHCP: auto_config false en Vagrantfile. IP esperada por reserva DHCP:
+    ip_expected: "192.168.56.100"
+    cpus: 2
+    memory: 3072
+    services: ["domain-join", "dns-client", "dhcp-client", "wiki-samba-ftp-tests"]
+    dns_server: "192.168.56.12"
+
+dhcp:
+  scope_start: "192.168.56.100"
+  scope_end: "192.168.56.200"
+  mask: "255.255.255.0"
+  gateway: "192.168.56.12"  # DC como gateway lógico en red aislada (sin salida real)
+  dns: "192.168.56.12"
+  domain: "lab.local"
+  lease_days: 8
+
+users:
+  # Nombres de ejemplo. Las contraseñas VAN en variables de entorno, nunca aquí.
+  # Ver provisioning/windows-server/10-ad-dns.ps1 para variables requeridas.
+  domain_users:
+    - { name: "estudiante1", groups: ["Alumnos"] }
+    - { name: "estudiante2", groups: ["Alumnos"] }
+    - { name: "profesor1", groups: ["Profesores"] }
+  samba_users:
+    - { name: "smbuser1", share: "academico" }
+  ftp_users:
+    - { name: "ftpuser1", chroot: true }
+
+# Requisitos host x86_64 (ver docs/architecture/COMPATIBILITY.md)
+host_reqs:
+  arch: "x86_64"
+  ram_min_gb: 16
+  disk_free_min_gb: 60
+  providers_ok: ["virtualbox >= 7.0", "vmware_desktop >= 17 (Fusion/Workstation)"]
+  vagrant_min: "2.4.0"
